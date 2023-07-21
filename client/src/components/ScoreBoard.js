@@ -13,18 +13,20 @@ const ScoreBoard = ({players})=>{
         <table className="table table-striped my-3">
             <thead>
                 <tr>
-                    <th scope="col">#</th>
+                    <th scope="col">Rank</th>
                     <th scope="col">User</th>
                     <th scope="col">WPM</th>
+                    <th scope="col">Time taken</th>
                 </tr>
             </thead>
             <tbody>
                 {
                     scoreBoard.map((player,index)=>{
-                        return <tr>
+                        return <tr keyey={index}>
                                     <th scope="row">{index + 1}</th>
                                     <td>{player.nickName}</td>
                                     <td>{player.WPM}</td>
+                                    <td>{player.te}</td>
                                </tr>
                     })
                 }
