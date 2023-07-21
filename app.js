@@ -198,7 +198,7 @@ io.on("connect", (socket) => {
   //   });
   socket.on("joinLobby", async ({ difficulty, nickName }) => {
     clearInterval(timerID);
-    let game = await Game.find({ difficulty: difficulty, isOpen: true });
+    let game = await Game.find({ difficulty: difficulty, isOpen: true, isOver: false, mode: {$ne: "practice"} });
 
     //   console.log(game[0].isOpen);
     if (game.length) {
@@ -214,6 +214,7 @@ io.on("connect", (socket) => {
       // add player to the game
       game[0].players.push(player);
       game[0].active += 1;
+
       // save the game
       game = await game[0].save();
       // send updated game to all sockets within game

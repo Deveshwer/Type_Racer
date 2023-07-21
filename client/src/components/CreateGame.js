@@ -36,6 +36,7 @@ const CreateGame = (props) => {
               <select
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value)}
+                required
               >
                 <option value="">-- Choose Difficulty --</option>
                 <option value="easy">Easy</option>
