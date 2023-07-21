@@ -9,7 +9,7 @@ const PlayerSchema = new mongoose.Schema({
   isPartyLeader: { type: Boolean, default: false },
   WPM: { type: Number, default: -1 },
   nickName: { type: String },
-  te: { type: Number },
+  te: { type: Number, default: -1 },
 });
 
 const GameSchema = new mongoose.Schema({

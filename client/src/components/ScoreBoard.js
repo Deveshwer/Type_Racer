@@ -1,7 +1,7 @@
 import React from 'react';
 
 const getScoreboard = (players)=>{
-    const scoreBoard = players.filter(player => player.WPM !== -1);
+    const scoreBoard = players.filter(player => player.te !== 0);
     return scoreBoard.sort((a,b)=> a.WPM > b.WPM ? -1 : b.WPM > a.WPM ? 1 : 0);
 }
 

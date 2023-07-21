@@ -3,14 +3,19 @@ import socket from "./socketConfig";
 
 function Practice() {
   const [difficulty, setDifficulty] = useState("");
+  
   const beginRound = () => {
     socket.emit("practice-game", { nickName: "Guest", difficulty });
   };
+  
   return (
-    <div>
-      <label>
-        Select Difficulty:
+    <div className="container">
+      <h1 className="mb-4">PRACTICE</h1>
+      <div className="form-group">
+        <label htmlFor="difficultySelect">Select Difficulty:</label>
         <select
+          className="form-control"
+          id="difficultySelect"
           value={difficulty}
           onChange={(e) => setDifficulty(e.target.value)}
           required
@@ -20,8 +25,12 @@ function Practice() {
           <option value="medium">Medium</option>
           <option value="hard">Hard</option>
         </select>
-      </label>
-      <button onClick={beginRound} disabled={!difficulty}>
+      </div>
+      <button 
+        className="btn btn-primary" 
+        onClick={beginRound} 
+        disabled={!difficulty}
+      >
         Start the game
       </button>
     </div>

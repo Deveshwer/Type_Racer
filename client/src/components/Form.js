@@ -45,6 +45,7 @@ const Form = ({ isOpen, isOver, gameID }) => {
               value={userInput}
               className="form-control"
               ref={textInput}
+              autoComplete="off"
             />
           </div>
         </form>

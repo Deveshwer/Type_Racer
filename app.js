@@ -9,6 +9,7 @@ const io = socketio(expressServer);
 
 const Game = require("./Models/Game");
 const QuotableAPI = require("./QuotableAPI");
+const { exit } = require("process");
 
 mongoose.connect(
   "mongodb+srv://suraj:j9dr8ecLqwgW5epK@selab.n0utwej.mongodb.net/?retryWrites=true&w=majority",
@@ -18,7 +19,7 @@ mongoose.connect(
   }
 );
 
-let timerID;
+IDs = {};
 
 // mongoose.connect('mongodb://localhost:27017/typeracerTutorial',
 //                  {useNewUrlParser : true, useUnifiedTopology : true, socketTimeoutMS: 30000},
@@ -41,6 +42,12 @@ io.on("connect", (socket) => {
         if (word === userInput) {
           // advance player to next word
           player.currentWordIndex++;
+
+          let curtime = new Date().getTime();
+
+          let { startTime } = game;
+          //   calculate Words Per Minute
+          player.WPM = calculateWPM(curtime, startTime, player);
           // if user hasn't finished typing the sentence
           if (player.currentWordIndex !== game.words.length) {
             // save the game
@@ -61,7 +68,7 @@ io.on("connect", (socket) => {
             // save game
             game = await game.save();
             // stops timer for that player
-            socket.emit("done");
+            socket.emit("done1");
             // send updated game to all sockets within game
             io.to(gameID).emit("updateGame", game);
           }
@@ -109,12 +116,13 @@ io.on("connect", (socket) => {
   socket.on("join-game", async ({ gameID: _id, nickName }) => {
     try {
       // get game
-      clearInterval(timerID);
-      let game = await Game.findById(_id);
+      // let game = await Game.findById(_id);
+      let game = await Game.find({ _id: _id, active: { $lt: 5 } });
       // check if game is allowing users to join
-      if (game.isOpen) {
+      if (game.length && game[0].isOpen) {
         // make players socket join the game room
-        const gameID = game._id.toString();
+        const gameID = game[0]._id.toString();
+        clearInterval(IDs[gameID]);
         socket.join(gameID);
         // create our player
         let player = {
@@ -122,88 +130,34 @@ io.on("connect", (socket) => {
           nickName,
           te: 0,
         };
-        game.active += 1;
+        game[0].active += 1;
         // add player to the game
-        game.players.push(player);
+        game[0].players.push(player);
         // save the game
-        game = await game.save();
+        game = await game[0].save();
         // send updated game to all sockets within game
         io.to(gameID).emit("updateGame", game);
+      } else {
+        socket.emit("no-game", "Room full, try again later.");
       }
     } catch (err) {
       console.log(err);
     }
   });
 
-  // socket.on('joinLobby', async({diff, nickName}) => {
-  //     try{
-  //         let game = await Game.find({ difficulty: diff });
-  //         if(game.isOpen){
-  //             // make players socket join the game room
-  //             const gameID = game._id.toString();
-  //             socket.join(gameID);
-  //             // create our player
-  //             let player = {
-  //                 socketID : socket.id,
-  //                 nickName
-  //             }
-  //             // add player to the game
-  //             game.players.push(player);
-  //             // save the game
-  //             game = await game.save();
-  //             // send updated game to all sockets within game
-  //             io.to(gameID).emit('updateGame',game);
-  //         }
-  //     }catch(err){
-  //         // const delayInMilliseconds = 60000;
-  //         // setTimeout(() => {
-
-  //         // }, delayInMilliseconds);
-  //         console.err("There is an error");
-  //     }
-  // })
-  //   socket.on("joinLobby", async ({ difficulty, nickName }) => {
-  //     try {
-  //       let game = await Game.find({ difficulty: difficulty, isOpen: true });
-  //       ok = true;
-  //       //   console.log(game[0].isOpen);
-  //       if (game.length) {
-  //         if (game[0].isOpen) {
-  //           // make players socket join the game room
-  //           const gameID = game[0]._id.toString();
-
-  //           socket.join(gameID);
-
-  //           // create our player
-  //           let player = {
-  //             socketID: socket.id,
-  //             nickName,
-  //           };
-  //           // add player to the game
-  //           game[0].players.push(player);
-  //           // save the game
-  //           game = await game[0].save();
-  //           // send updated game to all sockets within game
-  //           io.to(gameID).emit("updateGame", game);
-  //         }
-  //       }
-  //        else if (!game.length) {
-  //             ok = false;
-  //         }
-  //         throw "No game";
-  //     } catch (err) {
-  //         throw err;
-  //         //console.error("There is an error:", err);
-  //     }
-  //   });
   socket.on("joinLobby", async ({ difficulty, nickName }) => {
-    clearInterval(timerID);
-    let game = await Game.find({ difficulty: difficulty, isOpen: true, isOver: false, mode: {$ne: "practice"} });
+    let game = await Game.find({
+      difficulty: difficulty,
+      isOpen: true,
+      isOver: false,
+      mode: { $ne: "practice" },
+      active: { $lt: 5 },
+    });
 
     //   console.log(game[0].isOpen);
     if (game.length) {
       const gameID = game[0]._id.toString();
-
+      clearInterval(IDs[gameID]);
       socket.join(gameID);
       // create our player
       let player = {
@@ -220,14 +174,6 @@ io.on("connect", (socket) => {
       // send updated game to all sockets within game
       io.to(gameID).emit("updateGame", game);
     } else if (!game.length) {
-      // setTimeout(
-      //   () =>
-      //     socket.emit(
-      //       "joinLobbyError",
-      //       "An error occurred while trying to join the lobby."
-      //     ),
-      //   2000
-      // );
       socket.emit(
         "joinLobbyError",
         "An error occurred while trying to join the lobby."
@@ -278,11 +224,12 @@ io.on("connect", (socket) => {
     try {
       // get words that our users have to type out
       // console.log("create game connected");
-      clearInterval(timerID);
       const quotableData = await QuotableAPI(difficulty);
       //   console.log(difficulty);
       // create game
       let game = new Game();
+
+     // await Game.deleteMany({});
       // set words
       game.words = quotableData;
       game.mode = "invite";
@@ -302,6 +249,7 @@ io.on("connect", (socket) => {
       game = await game.save();
       // make players socket join the game room
       const gameID = game._id.toString();
+      clearInterval(IDs[gameID]);
       socket.join(gameID);
       // send updated game to all sockets within game
       io.to(gameID).emit("updateGame", game);
@@ -310,11 +258,38 @@ io.on("connect", (socket) => {
     }
   });
 
+  // socket.on("WPM-count", async ({game}) => {
+  //   try {
+  //     console.log(game._id);
+  //     game = await game.save();
+  //   } catch (err) {
+  //     console.err("Error!");
+  //   }
+  // });
+
+  socket.on("remove-user", async ({ gameID, socketID }) => {
+    let game = await Game.findById(gameID);
+    socket.emit("done");
+    io.to(gameID).emit("updateGame", game);
+    game.active -= 1;
+    console.log(game.players.length);
+    for (let i = 0; i < game.players.length; i += 1) {
+      if (game.players[i].socketID === socketID) {
+        game.players.splice(i, 1);
+        break;
+      }
+    }
+    console.log(game.players.length);
+    game = await game.save();
+    if (!game.active) {
+      clearInterval(IDs[gameID]);
+    }
+  });
+
   socket.on("practice-game", async ({ nickName, difficulty }) => {
     try {
       // get words that our users have to type out
       // console.log("create game connected");
-      clearInterval(timerID);
       const quotableData = await QuotableAPI(difficulty);
       //   console.log(difficulty);
       // create game
@@ -402,9 +377,6 @@ io.on("connect", (socket) => {
 // };
 
 const startGameClock = async (gameID) => {
-  console.log(timerID);
-  clearInterval(timerID);
-
   // get the game
   let game = await Game.findById(gameID);
   // get time stamp of when the game started
@@ -413,11 +385,17 @@ const startGameClock = async (gameID) => {
   game = await game.save();
   // time is in seconds
   let time = 120;
+  let val = time;
   // Start the Game Clock
-  timerID = setInterval(
+  let timerID = setInterval(
     (function gameIntervalFunc() {
       // keep countdown going
       if (time >= 0) {
+        // curTime = new Date().getTime();
+        // game.players.forEach((player, index) => {
+        //   player.WPM = calculateWPM(curTime, game.startTime, player);
+        // });
+        // io.to(gameID).emit("WPM-count", { game: game });
         const formatTime = calculateTime(time);
         io.to(gameID).emit("timer", {
           countDown: formatTime,
@@ -444,7 +422,10 @@ const startGameClock = async (gameID) => {
                 startTime,
                 player
               );
+            console.log(player.te);
+            if (player.te === 0) player.te = val;
           });
+
           // save the game
           game = await game.save();
           // send updated game to all sockets within game
@@ -456,6 +437,7 @@ const startGameClock = async (gameID) => {
     })(),
     1000
   );
+  IDs[gameID] = timerID;
   console.log(timerID);
 };
 

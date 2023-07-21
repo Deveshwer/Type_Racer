@@ -8,8 +8,11 @@ const CountDown = props =>{
             setTimer(data);
         });
         socket.on('done',()=>{
+            socket.removeAllListeners();
+         });
+         socket.on('done1', () => {
             socket.removeListener('timer');
-        });
+         });
     },[]);
     const {countDown,msg} = timer;
     return(

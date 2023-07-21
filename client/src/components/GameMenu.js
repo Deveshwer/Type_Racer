@@ -34,11 +34,11 @@ const GameMenu = (props) => {
         style={{ width: "31%", border: "0.8px solid #333", padding: "1rem", borderRadius: "1rem"}}
       >
         <div className="card-body">
-          <h1 className="my-5">Welcome to Type Racer</h1>
+          <h1 className="mt-5">Welcome to Type Racer</h1>
           <button
             type="button"
             onClick={() => history.push("/game/create")}
-            className="btn btn-secondary btn-lg mr-5"
+            className="btn btn-secondary btn-lg mr-5 mt-5"
             style={{ cursor: "pointer" }}
           >
             Create a new game
@@ -46,7 +46,7 @@ const GameMenu = (props) => {
           <button
             type="button"
             onClick={() => history.push("/game/join")}
-            className="btn btn-dark btn-lg"
+            className="btn btn-dark btn-lg mt-5"
           >
             Join using code
           </button>
