@@ -39,6 +39,7 @@ const TypeRacer = ({ gameState }) => {
         wordsLength={words.length}
       />
       <p>{player.nickName}'s Words Per Minute:  {player.WPM === -1 ? 0 : player.WPM}</p>
+      <p>Please type each word correctly to move on to the next word.</p>
       <br />
       <Form isOpen={isOpen} isOver={isOver} gameID={_id} />
       <CountDown />
